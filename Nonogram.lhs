@@ -3,9 +3,13 @@
 > import Data.List (group, foldl', transpose)
 > import Control.Monad (forM_, guard, mplus)
 
-> import Control.Parallel.Strategies (parMap, r0)
+> import Control.Parallel (pseq)
+
+> import Control.Parallel.Strategies (parMap, r0, rwhnf)
 
 > import Debug.Trace
+
+> trace' x = traceShow x x
 
 import Data.Maybe (fromMaybe)
 
@@ -70,7 +74,8 @@ the same description (without the `d` black cells).
 
 TODO: Do not add white when at the end of the row
 
->         map ((replicate d Black ++ [White]) ++) (row (width - d - 1) ds) ++
+>         map ((replicate d Black ++ if width - d - 1 > 0 then [White] else []) ++)
+>             (row (width - d - 1) ds) ++
 
 If the black area does not start at the beginning of the row, we know that the
 row starts with a white cell. The rest of the row is recursively defined as a
@@ -97,7 +102,7 @@ Generate the description of a column
 
 > check :: [Description] -> Nonogram -> Maybe Nonogram
 > check columnDescriptions nonogram
->     | columnDescriptions == map description (columns nonogram) = Just nonogram
+>     | columnDescriptions == (map description (columns nonogram)) = Just nonogram
 >     | otherwise = Nothing
 
 > reduce :: Maybe Nonogram -> Maybe Nonogram -> Maybe Nonogram
@@ -115,8 +120,11 @@ nonogram
 > mapReduce :: (a -> b) -> (b -> b -> b) -> b -> [a] -> b
 > mapReduce f r i = foldl' r i . map f
 
-> parMapReduce :: (a -> b) -> (b -> b -> b) -> b -> [a] -> b
-> parMapReduce f r i = foldl' r i . parMap r0 f
+> parMapReduce :: Int -> (a -> b) -> (b -> b -> b) -> b -> [a] -> b
+> parMapReduce n f r i [] = i
+> parMapReduce n f r i ls =
+>     let x = foldr r i $ parMap rwhnf f (take n ls)
+>     in x `pseq` parMapReduce n f r x (drop n ls)
 
 > type Strategy =  (Nonogram -> Maybe Nonogram)
 >               -> (Maybe Nonogram -> Maybe Nonogram -> Maybe Nonogram)
@@ -130,7 +138,7 @@ nonogram
 >     let width = length columnDescriptions
 >         height = length rowDescriptions
 
->         nonograms = mapM (row width) rowDescriptions
+>         nonograms = nonograms' width rowDescriptions
 
 >     in strategy (check columnDescriptions) reduce Nothing nonograms
 
@@ -142,6 +150,11 @@ nonogram
 >         description == description index nonogram'
 >     -}
 
+> nonograms' :: Int -> [Description] -> [Nonogram]
+> nonograms' width rowDescriptions =
+>     let height = length rowDescriptions
+>     in mapM (row width) rowDescriptions
+
 testing
 -------
 
@@ -151,7 +164,7 @@ testing
 > solve = uncurry (nonogram mapReduce)
 
 > parSolve :: Puzzle -> Maybe Nonogram
-> parSolve = uncurry (nonogram parMapReduce)
+> parSolve = uncurry (nonogram $ parMapReduce 4)
 
 > solve' :: Puzzle -> IO ()
 > solve' puzzle = case solve puzzle of

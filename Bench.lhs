@@ -6,8 +6,8 @@
 > main = defaultMain
 >     [ bench "small solve" $ nf (fmap show . solve) small
 >     , bench "small parSolve" $ nf (fmap show . parSolve) small
->     , bench "large solve" $ nf (fmap show . solve) large
->     , bench "large parSolve" $ nf (fmap show . parSolve) large
+>     -- , bench "large solve" $ nf (fmap show . solve) large
+>     -- , bench "large parSolve" $ nf (fmap show . parSolve) large
 >     ]
 
 > small :: Puzzle
