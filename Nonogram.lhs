@@ -1,7 +1,7 @@
 > module Nonogram where
 
-> import Data.List (group)
-> import Control.Monad (forM_, guard)
+> import Data.List (group, foldl', transpose)
+> import Control.Monad (forM_, guard, mplus)
 
 > import Control.Parallel.Strategies (parMap, r0)
 
@@ -25,6 +25,7 @@ A cell can be either filled or not
 A row is simply a list of cells.
 
 > type Row = [Cell]
+> type Column = [Cell]
 
 > type Nonogram = [Row]
 
@@ -67,6 +68,8 @@ cells will be black, followed by a white cell. The rest of the row is
 recursively defined as another row with a smaller width (`width - d - 1`) and
 the same description (without the `d` black cells).
 
+TODO: Do not add white when at the end of the row
+
 >         map ((replicate d Black ++ [White]) ++) (row (width - d - 1) ds) ++
 
 If the black area does not start at the beginning of the row, we know that the
@@ -80,12 +83,25 @@ column
 
 Generate the description of a column
 
-> columnDescription :: Int -> Nonogram -> Description
-> columnDescription index = map length . filter isBlack . group . map (!! index)
+> description :: Column -> Description
+> description = map length . filter isBlack . group
 >   where
 >     isBlack []          = False
 >     isBlack (White : _) = False
 >     isBlack _           = True
+
+> columns :: Nonogram -> [Column]
+> columns = transpose
+
+-- > f :: [Description] -> 
+
+> check :: [Description] -> Nonogram -> Maybe Nonogram
+> check columnDescriptions nonogram
+>     | columnDescriptions == map description (columns nonogram) = Just nonogram
+>     | otherwise = Nothing
+
+> reduce :: Maybe Nonogram -> Maybe Nonogram -> Maybe Nonogram
+> reduce = mplus
 
 nonogram
 --------
@@ -96,38 +112,48 @@ nonogram
 > parallel :: (a -> [b]) -> [a] -> [[b]]
 > parallel f = sequence . parMap r0 f
 
-> nonogram :: ((Description -> [Row]) -> [Description] -> [[Row]])
->          -> [Description] -> [Description] -> [Nonogram]
-> nonogram mapM' rowDescriptions columnDescriptions = do
+> mapReduce :: (a -> b) -> (b -> b -> b) -> b -> [a] -> b
+> mapReduce f r i = foldl' r i . map f
+
+> parMapReduce :: (a -> b) -> (b -> b -> b) -> b -> [a] -> b
+> parMapReduce f r i = foldl' r i . parMap r0 f
+
+> type Strategy =  (Nonogram -> Maybe Nonogram)
+>               -> (Maybe Nonogram -> Maybe Nonogram -> Maybe Nonogram)
+>               -> Maybe Nonogram
+>               -> [Nonogram]
+>               -> Maybe Nonogram
+
+> nonogram :: Strategy -> [Description] -> [Description] -> Maybe Nonogram
+> nonogram strategy rowDescriptions columnDescriptions =
 
 >     let width = length columnDescriptions
 >         height = length rowDescriptions
 
->     nonogram' <- mapM' (row width) rowDescriptions
+>         nonograms = mapM (row width) rowDescriptions
 
+>     in strategy (check columnDescriptions) reduce Nothing nonograms
+
+>     {- nonogram' <- (map (row width) rowDescriptions)
 >     guard $ all (uncurry $ valid nonogram') (zip [0 ..] columnDescriptions)
-
 >     return nonogram'
-
 >   where
 >     valid nonogram' index description =
->         description == columnDescription index nonogram'
+>         description == description index nonogram'
+>     -}
 
 testing
 -------
 
 > type Puzzle = ([Description], [Description])
 
-> solve :: Puzzle -> [Nonogram]
-> solve = uncurry (nonogram simple)
+> solve :: Puzzle -> Maybe Nonogram
+> solve = uncurry (nonogram mapReduce)
 
-> parSolve :: Puzzle -> [Nonogram]
-> parSolve = uncurry (nonogram parallel)
+> parSolve :: Puzzle -> Maybe Nonogram
+> parSolve = uncurry (nonogram parMapReduce)
 
 > solve' :: Puzzle -> IO ()
-> solve' puzzle = do
->     let solutions = solve puzzle
->     forM_ (zip [1 ..] solutions) $ \(n, solution) -> do
->         putStrLn $ "Solution " ++ show n ++ ":"
->         mapM_ (putStrLn . showRow) solution
->         putStrLn ""
+> solve' puzzle = case solve puzzle of
+>     Nothing -> putStrLn "No solution found"
+>     Just s  -> mapM_ (putStrLn . showRow) s

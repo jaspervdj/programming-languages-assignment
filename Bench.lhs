@@ -4,10 +4,10 @@
 
 > main :: IO ()
 > main = defaultMain
->     [ bench "small solve" $ nf (show . map concat . solve) small
->     , bench "small parSolve" $ nf (show . map concat . parSolve) small
->     , bench "large solve" $ nf (show . map concat . solve) large
->     , bench "large parSolve" $ nf (show . map concat . parSolve) large
+>     [ bench "small solve" $ nf (fmap show . solve) small
+>     , bench "small parSolve" $ nf (fmap show . parSolve) small
+>     , bench "large solve" $ nf (fmap show . solve) large
+>     , bench "large parSolve" $ nf (fmap show . parSolve) large
 >     ]
 
 > small :: Puzzle
