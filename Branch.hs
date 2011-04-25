@@ -9,12 +9,10 @@ import qualified Data.IntMap as IM
 
 import qualified Deduction
 
-trace' x = traceShow x x
+data Color = White | Black
+           deriving (Show, Eq)
 
-data Cell = White | Black
-          deriving (Show, Eq)
-
-data Partial = MustBe Cell
+data Partial = MustBe Color
              | BlackArea Int
              deriving (Show, Eq)
 
@@ -58,7 +56,7 @@ failSolver = Solver $ const Nothing
 getPartials :: Solver (IntMap [Partial])
 getPartials = Solver $ \columns -> Just (columns, columns)
 
-updatePartials :: [Partial] -> Cell -> Maybe [Partial]
+updatePartials :: [Partial] -> Color -> Maybe [Partial]
 updatePartials [] White = Just []
 updatePartials [] Black = Nothing
 updatePartials (MustBe x : ds) y
@@ -70,13 +68,13 @@ updatePartials (BlackArea n : ds) Black = Just $
 
 -- | Update a column description
 --
-updatePartial :: Int -> Cell -> Solver ()
-updatePartial index cell = Solver $ \columns ->
+updatePartial :: Color -> Int -> Solver ()
+updatePartial cell index = Solver $ \columns ->
     case updatePartials (columns IM.! index) cell of
         Nothing -> Nothing
         Just ds -> Just ((), IM.insert index ds columns)
 
-solve :: Int -> Int -> [Description] -> Solver [[Cell]]
+solve :: Int -> Int -> [Description] -> Solver [[Color]]
 
 -- No more rows to do: check that all columns are empty
 solve width column [] = do
@@ -87,37 +85,29 @@ solve width column [] = do
 solve width column (rowDescription : rowDescriptions) = case rowDescription of
     -- Row finished, go to next one
     [] -> do
-        forM_ [column .. width - 1] $ \c -> do
-            -- trace ("Setting " ++ show (length rowDescriptions, c)) $ return ()
-            updatePartial c White
+        forM_ [column .. width - 1] $ updatePartial White
         rows <- solve width 0 rowDescriptions
         return $ replicate (width - column - 1) White : rows
 
     (l : ds) ->
-        let place = do -- trace ("Place " ++ show l ++ " at " ++ show (length rowDescriptions, column)) $ do
-                partials <- getPartials
-                -- traceShow partials $ return ()
-
+        let place = do
                 when (column + l > width) failSolver
-                forM_ [column .. column + l - 1] $ \c -> do
-                    updatePartial c Black
-                    -- trace ("updated " ++ show c) $ return ()
+                forM_ [column .. column + l - 1] $ updatePartial Black
 
-                when (column + l < width) $
-                    updatePartial (column + l) White
+                when (column + l < width) $ updatePartial White (column + l)
 
                 (row : rows) <-
                     solve width (column + l + 1) (ds : rowDescriptions)
                 return $ (replicate l Black ++ (White : row)) : rows
             skip = do
                 when (column >= width) failSolver
-                updatePartial column White
+                updatePartial White column
                 (row : rows) <-
                     solve width (column + 1) ((l : ds) : rowDescriptions)
                 return $ ((White : row)) : rows
         in choose place skip
 
-nonogram :: [Description] -> [Description] -> Maybe [[Cell]]
+nonogram :: [Description] -> [Description] -> Maybe [[Color]]
 nonogram rows columns = fmap fst $
     unSolver (solve (length columns) 0 rows) state
   where
@@ -141,7 +131,7 @@ edgecase' = ( [[1, 1], [1], [3]]
             , [[3], [1], [1, 1]]
             )
 
-solution :: [[Cell]]
+solution :: [[Color]]
 solution =
     [ [White, Black, Black, Black, White]
     , [Black, White, Black, Black, Black]
