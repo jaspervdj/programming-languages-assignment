@@ -42,34 +42,10 @@ columns -- in addition to the `Description` of the columns.
 
 > type Partials = IntMap [Partial]
 
-> 
-> newtype Solver a = Solver
->     { unSolver :: IntMap [Partial] -> Maybe (a, IntMap [Partial])
->     }
-> 
-> instance Functor Solver where
->     fmap f s = Solver (fmap (first f) . unSolver s)
-> 
-> instance Monad Solver where
->     return x = Solver (\s -> Just (x, s))
->     (Solver x) >>= f = Solver $ \s -> case x s of
->         Nothing       -> Nothing
->         Just (x', s') -> unSolver (f x') s'
-> 
 > -- | Choose the first option
 > --
 > choose :: Maybe a -> Maybe a -> Maybe a
 > choose = mplus
-> 
-> -- | Fail the current solving path
-> --
-> failSolver :: Solver a
-> failSolver = Solver $ const Nothing
-> 
-> -- Get the column descriptions
-> --
-> getPartials :: Solver (IntMap [Partial])
-> getPartials = Solver $ \columns -> Just (columns, columns)
 > 
 > updatePartials :: [Partial] -> Color -> Maybe [Partial]
 > updatePartials [] White = Just []
