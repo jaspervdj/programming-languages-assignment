@@ -1,7 +1,7 @@
 > module Branch where
 > 
 > import Control.Arrow (first)
-> import Control.Monad (when, forM_, mplus, unless)
+> import Control.Monad (when, forM_, mplus, unless, foldM)
 > 
 > import Data.IntMap (IntMap)
 > import qualified Data.IntMap as IM
@@ -39,6 +39,9 @@ columns -- in addition to the `Description` of the columns.
 > 
 > fromDescription :: Description -> [Partial]
 > fromDescription = map BlackArea
+
+> type Partials = IntMap [Partial]
+
 > 
 > newtype Solver a = Solver
 >     { unSolver :: IntMap [Partial] -> Maybe (a, IntMap [Partial])
@@ -55,9 +58,8 @@ columns -- in addition to the `Description` of the columns.
 > 
 > -- | Choose the first option
 > --
-> choose :: Solver a -> Solver a -> Solver a
-> choose (Solver f) (Solver g) = Solver $ \s ->
->     mplus (f s) (g s)
+> choose :: Maybe a -> Maybe a -> Maybe a
+> choose = mplus
 > 
 > -- | Fail the current solving path
 > --
@@ -81,50 +83,48 @@ columns -- in addition to the `Description` of the columns.
 > 
 > -- | Update a column description
 > --
-> updatePartial :: Color -> Int -> Solver ()
-> updatePartial cell index = Solver $ \columns ->
->     case updatePartials (columns IM.! index) cell of
+> updatePartial :: Color -> Partials -> Int -> Maybe Partials
+> updatePartial cell partials index =
+>     case updatePartials (partials IM.! index) cell of
 >         Nothing -> Nothing
->         Just ds -> Just ((), IM.insert index ds columns)
+>         Just ds -> Just $ IM.insert index ds partials
 > 
-> solve :: Int -> Int -> [Description] -> Solver Nonogram
+> solve :: Int -> Int -> [Description] -> Partials -> Maybe Nonogram
 > 
 > -- No more rows to do: check that all columns are empty
-> solve width column [] = do
->     columns <- getPartials
->     if all emptyPartial (map snd $ IM.toList columns) then return [[]]
->                                                       else failSolver
+> solve width column [] partials = do
+>     if all emptyPartial (map snd $ IM.toList partials) then return [[]]
+>                                                        else Nothing
 > 
-> solve width column (rowDescription : rowDescriptions) = case rowDescription of
+> solve width column (rowDescription : rds) partials = case rowDescription of
 >     -- Row finished, go to next one
 >     [] -> do
->         forM_ [column .. width - 1] $ updatePartial White
->         rows <- solve width 0 rowDescriptions
+>         ps <- foldM (updatePartial White) partials [column .. width - 1]
+>         rows <- solve width 0 rds ps
 >         return $ replicate (width - column) White : rows
 > 
 >     (l : ds) ->
 >         let place = do
->                 when (column + l > width) failSolver
->                 forM_ [column .. column + l - 1] $ updatePartial Black
+>                 when (column + l > width) Nothing
+>                 ps <- foldM (updatePartial Black) partials
+>                           [column .. column + l - 1]
 > 
 >                 let atEnd = column + l == width
 > 
->                 unless atEnd $ updatePartial White (column + l)
+>                 ps' <- if atEnd then return ps
+>                                 else updatePartial White ps (column + l)
 > 
->                 (row : rows) <-
->                     solve width (column + l + 1) (ds : rowDescriptions)
+>                 (row : rows) <- solve width (column + l + 1) (ds : rds) ps'
 >                 return $ (replicate l Black ++ if atEnd then row else (White : row)) : rows
 >             skip = do
->                 when (column >= width) failSolver
->                 updatePartial White column
->                 (row : rows) <-
->                     solve width (column + 1) ((l : ds) : rowDescriptions)
+>                 when (column >= width) Nothing
+>                 ps <- updatePartial White partials column
+>                 (row : rows) <- solve width (column + 1) ((l : ds) : rds) ps
 >                 return $ ((White : row)) : rows
 >         in choose place skip
 > 
 > nonogram :: [Description] -> [Description] -> Maybe Nonogram
-> nonogram rows columns = fmap fst $
->     unSolver (solve (length columns) 0 rows) state
+> nonogram rows columns = solve (length columns) 0 rows state
 >   where
 >     state = IM.fromList (zip [0 ..] $ map fromDescription columns)
 > 
