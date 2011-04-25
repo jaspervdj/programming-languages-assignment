@@ -3,9 +3,10 @@
 > import Data.List (group, foldl', transpose)
 > import Control.Monad (forM_, guard, mplus)
 
-> import Control.Parallel (pseq)
+> import Control.Parallel (pseq, par)
 
-> import Control.Parallel.Strategies (parMap, r0, rwhnf)
+> import Control.Parallel.Strategies (parMap, r0, rwhnf, rdeepseq)
+> import Control.DeepSeq (NFData (..))
 
 > import Debug.Trace
 
@@ -21,6 +22,9 @@ A cell can be either filled or not
 > data Cell = Black
 >           | White
 >           deriving (Eq, Ord)
+
+> instance NFData Cell where
+>     rnf x = x `seq` ()
 
 > instance Show Cell where
 >     show Black = "X"
@@ -114,17 +118,22 @@ nonogram
 > simple :: (a -> [b]) -> [a] -> [[b]]
 > simple = mapM
 
-> parallel :: (a -> [b]) -> [a] -> [[b]]
-> parallel f = sequence . parMap r0 f
+> parallel :: NFData b => (a -> [b]) -> [a] -> [[b]]
+> parallel f = sequence . parMap rdeepseq f
 
 > mapReduce :: (a -> b) -> (b -> b -> b) -> b -> [a] -> b
 > mapReduce f r i = foldl' r i . map f
 
-> parMapReduce :: Int -> (a -> b) -> (b -> b -> b) -> b -> [a] -> b
-> parMapReduce n f r i [] = i
-> parMapReduce n f r i ls =
->     let x = foldr r i $ parMap rwhnf f (take n ls)
->     in x `pseq` parMapReduce n f r x (drop n ls)
+> parMapReduce :: NFData b => (a -> b) -> (b -> b -> b) -> b -> [a] -> b
+> parMapReduce f r = parMapReduce'
+>   where
+>     parMapReduce' i [] = i
+>     parMapReduce' i (x : y : ls) =
+>         let x' = f x
+>             y' = f y
+>         in x' `par` y' `pseq` parMapReduce' (r x' y') ls
+>     parMapReduce' i (x : []) = r i (f x)
+>     {-# NOINLINE parMapReduce' #-}
 
 > type Strategy =  (Nonogram -> Maybe Nonogram)
 >               -> (Maybe Nonogram -> Maybe Nonogram -> Maybe Nonogram)
@@ -164,7 +173,7 @@ testing
 > solve = uncurry (nonogram mapReduce)
 
 > parSolve :: Puzzle -> Maybe Nonogram
-> parSolve = uncurry (nonogram $ parMapReduce 4)
+> parSolve = uncurry (nonogram parMapReduce)
 
 > solve' :: Puzzle -> IO ()
 > solve' puzzle = case solve puzzle of
