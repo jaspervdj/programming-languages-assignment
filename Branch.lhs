@@ -30,40 +30,63 @@ columns -- in addition to the `Description` of the columns.
 > data Partial = MustBe Color
 >              | BlackArea Int
 >              deriving (Show, Eq)
-> 
+
+Initially, this partial information is deduced from the descriptions alone.
+Hence, we have a function to convert a `Description` into `Partial` information.
+
+> fromDescription :: Description -> [Partial]
+> fromDescription = map BlackArea
+
+When we reach the bottom of the nonogram, we will have a "final state" of the
+partials for every column. We then need to check if we "used up" all black
+areas: this function checks if the partial information can be considered empty.
+Note that we do allow `White` fields in empty partials (since they do not add to
+the description counts).
+
 > emptyPartial :: [Partial] -> Bool
 > emptyPartial [] = True
 > emptyPartial (MustBe Black : _) = False
 > emptyPartial (BlackArea _ : _) = False
 > emptyPartial (_ : xs) = emptyPartial xs
-> 
-> fromDescription :: Description -> [Partial]
-> fromDescription = map BlackArea
+
+We need to keep a `[Partial]` for every column. We can't store them in a list
+because we want fast random access. We use an `IntMap`, a purely functional
+tree-like structure (big-endian patricia trees) which performs fast for lookups
+and insertions.
 
 > type Partials = IntMap [Partial]
 
-> -- | Choose the first option
-> --
+The following function adds a cell to partial information. It returns a value in
+the `Maybe` monad:
+
+- if the cell is inconsistent with previous information, it returns `Nothing`;
+
+- otherwise, it returns the updated partial information.
+
+On update, it might consume or add to the partial information. Note that the
+partial information always represents "what comes next" in the column, so we
+only need to inspect/modify the first few elements of the list.
+
+> learnCell :: Color -> [Partial] -> Maybe [Partial]
+> learnCell White [] = Just []
+> learnCell Black [] = Nothing
+> learnCell y (MustBe x : ds) = if x == y then Just ds else Nothing
+> learnCell White ds = Just ds
+> learnCell Black (BlackArea n : ds) = Just $
+>     replicate (n - 1) (MustBe Black) ++ (MustBe White : ds)
+
+TODO
+
 > choose :: Maybe a -> Maybe a -> Maybe a
 > choose = mplus
-> 
-> updatePartials :: [Partial] -> Color -> Maybe [Partial]
-> updatePartials [] White = Just []
-> updatePartials [] Black = Nothing
-> updatePartials (MustBe x : ds) y
->     | x == y    = Just ds
->     | otherwise = Nothing
-> updatePartials ds White = Just ds
-> updatePartials (BlackArea n : ds) Black = Just $
->     replicate (n - 1) (MustBe Black) ++ (MustBe White : ds)
-> 
-> -- | Update a column description
-> --
-> updatePartial :: Color -> Partials -> Int -> Maybe Partials
-> updatePartial cell partials index =
->     case updatePartials (partials IM.! index) cell of
->         Nothing -> Nothing
->         Just ds -> Just $ IM.insert index ds partials
+
+We also provide a convenience function to call `learnCell` for a particular
+column (specified by it's 0-based index).
+
+> learnCellAt :: Color -> Partials -> Int -> Maybe Partials
+> learnCellAt cell partials index = do
+>     ds <- learnCell cell $ partials IM.! index
+>     return $ IM.insert index ds partials
 > 
 > solve :: Int -> Int -> [Description] -> Partials -> Maybe Nonogram
 > 
@@ -75,26 +98,26 @@ columns -- in addition to the `Description` of the columns.
 > solve width column (rowDescription : rds) partials = case rowDescription of
 >     -- Row finished, go to next one
 >     [] -> do
->         ps <- foldM (updatePartial White) partials [column .. width - 1]
+>         ps <- foldM (learnCellAt White) partials [column .. width - 1]
 >         rows <- solve width 0 rds ps
 >         return $ replicate (width - column) White : rows
 > 
 >     (l : ds) ->
 >         let place = do
 >                 when (column + l > width) Nothing
->                 ps <- foldM (updatePartial Black) partials
+>                 ps <- foldM (learnCellAt Black) partials
 >                           [column .. column + l - 1]
 > 
 >                 let atEnd = column + l == width
 > 
 >                 ps' <- if atEnd then return ps
->                                 else updatePartial White ps (column + l)
+>                                 else learnCellAt White ps (column + l)
 > 
 >                 (row : rows) <- solve width (column + l + 1) (ds : rds) ps'
 >                 return $ (replicate l Black ++ if atEnd then row else (White : row)) : rows
 >             skip = do
 >                 when (column >= width) Nothing
->                 ps <- updatePartial White partials column
+>                 ps <- learnCellAt White partials column
 >                 (row : rows) <- solve width (column + 1) ((l : ds) : rds) ps
 >                 return $ ((White : row)) : rows
 >         in choose place skip
