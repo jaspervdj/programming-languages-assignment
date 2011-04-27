@@ -96,19 +96,20 @@ transformation [^1].
 > solve width = solve'
 >   where
 >
->     -- No more rows to do: check that all columns are empty
->     solve' column [] partials = do
->         if all emptyPartial (map snd $ IM.toList partials) then return [[]]
->                                                            else Nothing
+>     solve' column descriptions partials
+>         -- No more rows to do: check that all columns are empty
+>         | null descriptions =
+>             if all emptyPartial (map snd $ IM.toList partials)
+>                 then return [[]]
+>                 else Nothing
 >
->     solve' column (rowDescription : rds) partials = case rowDescription of
 >         -- Row finished, go to next one
->         [] -> do
+>         | null rd = do
 >             ps <- foldM (learnCellAt White) partials [column .. width - 1]
 >             rows <- solve' 0 rds ps
 >             return $ replicate (width - column) White : rows
 >
->         (l : ds) ->
+>         | otherwise =
 >             let place = do
 >                     when (column + l > width) Nothing
 >                     ps <- foldM (learnCellAt Black) partials
@@ -128,6 +129,12 @@ transformation [^1].
 >                     (row : rows) <- solve' (column + 1) ((l : ds) : rds) ps
 >                     return $ ((White : row)) : rows
 >             in choose place skip
+>       where
+>         -- Row descriptions
+>         (rd : rds) = descriptions
+>
+>         -- This row's description
+>         (l : ds) = rd
 >
 > nonogram :: [Description] -> [Description] -> Maybe Nonogram
 > nonogram rows columns = solve (length columns) 0 rows state
