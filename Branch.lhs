@@ -1,8 +1,8 @@
 > module Branch where
-> 
+>
 > import Control.Arrow (first)
 > import Control.Monad (when, forM_, mplus, unless, foldM)
-> 
+>
 > import Data.IntMap (IntMap)
 > import qualified Data.IntMap as IM
 
@@ -87,46 +87,53 @@ column (specified by it's 0-based index).
 > learnCellAt cell partials index = do
 >     ds <- learnCell cell $ partials IM.! index
 >     return $ IM.insert index ds partials
-> 
+
+We have a `solve` function which is a wrapper around a `solve'` function which
+does the actual work. This is an optimization called the static argument
+transformation [^1].
+
 > solve :: Int -> Int -> [Description] -> Partials -> Maybe Nonogram
-> 
-> -- No more rows to do: check that all columns are empty
-> solve width column [] partials = do
->     if all emptyPartial (map snd $ IM.toList partials) then return [[]]
->                                                        else Nothing
-> 
-> solve width column (rowDescription : rds) partials = case rowDescription of
->     -- Row finished, go to next one
->     [] -> do
->         ps <- foldM (learnCellAt White) partials [column .. width - 1]
->         rows <- solve width 0 rds ps
->         return $ replicate (width - column) White : rows
-> 
->     (l : ds) ->
->         let place = do
->                 when (column + l > width) Nothing
->                 ps <- foldM (learnCellAt Black) partials
->                           [column .. column + l - 1]
-> 
->                 let atEnd = column + l == width
-> 
->                 ps' <- if atEnd then return ps
->                                 else learnCellAt White ps (column + l)
-> 
->                 (row : rows) <- solve width (column + l + 1) (ds : rds) ps'
->                 return $ (replicate l Black ++ if atEnd then row else (White : row)) : rows
->             skip = do
->                 when (column >= width) Nothing
->                 ps <- learnCellAt White partials column
->                 (row : rows) <- solve width (column + 1) ((l : ds) : rds) ps
->                 return $ ((White : row)) : rows
->         in choose place skip
-> 
+> solve width = solve'
+>   where
+>
+>     -- No more rows to do: check that all columns are empty
+>     solve' column [] partials = do
+>         if all emptyPartial (map snd $ IM.toList partials) then return [[]]
+>                                                            else Nothing
+>
+>     solve' column (rowDescription : rds) partials = case rowDescription of
+>         -- Row finished, go to next one
+>         [] -> do
+>             ps <- foldM (learnCellAt White) partials [column .. width - 1]
+>             rows <- solve' 0 rds ps
+>             return $ replicate (width - column) White : rows
+>
+>         (l : ds) ->
+>             let place = do
+>                     when (column + l > width) Nothing
+>                     ps <- foldM (learnCellAt Black) partials
+>                               [column .. column + l - 1]
+>
+>                     let atEnd = column + l == width
+>
+>                     ps' <- if atEnd then return ps
+>                                     else learnCellAt White ps (column + l)
+>
+>                     (row : rows) <- solve' (column + l + 1) (ds : rds) ps'
+>                     let row' = if atEnd then row else White : row
+>                     return $ (replicate l Black ++ row') : rows
+>                 skip = do
+>                     when (column >= width) Nothing
+>                     ps <- learnCellAt White partials column
+>                     (row : rows) <- solve' (column + 1) ((l : ds) : rds) ps
+>                     return $ ((White : row)) : rows
+>             in choose place skip
+>
 > nonogram :: [Description] -> [Description] -> Maybe Nonogram
 > nonogram rows columns = solve (length columns) 0 rows state
 >   where
 >     state = IM.fromList (zip [0 ..] $ map fromDescription columns)
-> 
+>
 > nonogram' :: [Description] -> [Description] -> IO ()
 > nonogram' rows columns = case nonogram rows columns of
 >     Nothing -> putStrLn "No solution found"
@@ -134,17 +141,17 @@ column (specified by it's 0-based index).
 >   where
 >     cell Black = "X"
 >     cell White = "-"
-> 
+>
 > edgecase :: ([Description], [Description])
 > edgecase = ( [[3], [1, 3], [1], [3], [1, 1]]
 >            , [[3], [1, 2], [2, 1], [2, 1], [1]]
 >            )
-> 
+>
 > edgecase' :: ([Description], [Description])
 > edgecase' = ( [[1, 1], [1], [3]]
 >             , [[3], [1], [1, 1]]
 >             )
-> 
+>
 > solution :: [[Color]]
 > solution =
 >     [ [White, Black, Black, Black, White]
@@ -153,3 +160,6 @@ column (specified by it's 0-based index).
 >     , [Black, Black, Black, White, White]
 >     , [White, Black, White, Black, White]
 >     ]
+
+[^1]: A straightforward explanation can be found in this blogpost:
+      <http://blog.johantibell.com/2010/09/static-argument-transformation.html>
