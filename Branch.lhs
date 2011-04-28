@@ -1,3 +1,7 @@
+## Nonogram solver
+
+### Implementation
+
 > {-# LANGUAGE BangPatterns #-}
 > module Branch where
 >
@@ -242,3 +246,5 @@ the solution by using:
 
 [^1]: A straightforward explanation can be found in this blogpost:
       <http://blog.johantibell.com/2010/09/static-argument-transformation.html>
+
+### Parallelization conclusions
