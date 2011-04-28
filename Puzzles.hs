@@ -1,6 +1,6 @@
 module Puzzles where
 
-import Nonogram
+type Puzzle = ([[Int]], [[Int]])
 
 puzzle_5x5_1 :: Puzzle
 puzzle_5x5_1 = 

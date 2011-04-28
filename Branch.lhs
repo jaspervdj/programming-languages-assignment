@@ -8,6 +8,8 @@
 > import Data.IntMap (IntMap)
 > import qualified Data.IntMap as IM
 
+> import Puzzles
+
 For representing the value of a cell, we use a simple datatype called `Color`.
 
 > data Color = White | Black
@@ -77,11 +79,6 @@ only need to inspect/modify the first few elements of the list.
 > learnCell Black (BlackArea n : ds) = Just $
 >     replicate (n - 1) (MustBe Black) ++ (MustBe White : ds)
 
-TODO
-
-> choose :: Maybe a -> Maybe a -> Maybe a
-> choose = mplus
-
 We also provide a convenience function to call `learnCell` for a particular
 column (specified by it's 0-based index).
 
@@ -97,42 +94,93 @@ abstracting over the way we deal with branches in our search tree.
 
 More concrete, we have a branching strategy (`Branching`) which decides how two
 branches which might or might not yield a result (the `Maybe a`'s) are composed.
-The first argument is the depth of the branch in the tree -- some strategies
-might want to use this information in order to make a decision.
+We also provide sequential and parallel branching:
 
 > type Branching a = Maybe a -> Maybe a -> Maybe a
 
-We have a `solve` function which is a wrapper around a `solve'` function which
-does the actual work. This is an optimization called the static argument
+> sequential :: Branching a
+> sequential = mplus
+
+> parallel :: Branching a
+> parallel x y = x `par` y `pseq` mplus x y
+
+Parallelization of Haskell programs can be easily done using `par` annotations,
+which attempts to spark the calculation of a thunk on a free core (if possible).
+While `par` is a very cheap function call, it is not *free*. Therefore, one
+always has to make sure the computations we spark on other cores are big enough,
+so we minimize the overhead caused by `par`.
+
+This implies it could be a better strategy to only use parallel branching if we
+are in the upper part of the search tree (i.e. depth is less than a given `n`).
+However, after experimenting with this, this `n` was highly dependent of the
+used input set, and the speedup was only marginally better than the simpler
+solution using just `parallel` -- so I decided not to use this more advanced
+strategy.
+
+The strategy is used in the `solve` function, which holds most of the main
+solver logic.
+
+The `solve` function is actually a wrapper around a `solve'` function which does
+the actual work. This is an optimization called the static argument
 transformation [^1].
 
 > solve :: Branching Nonogram -> Int -> Int -> [Description] -> Partials
 >       -> Maybe Nonogram
-> solve branchingStrategy width = solve'
+> solve branch width = solve'
 >   where
->
 >     solve' column descriptions partials
->         -- No more rows to do: check that all columns are empty
+
+There are a number of cases that need to be considered. First, suppose there are
+no more descriptions for the rows. In this case, we know that the knowledge we
+have about the column partials must be empty: we can no longer place any black
+cells. If this is the case, we have a correct solution (the empty one),
+otherwise, our solver fails by returning `Nothing`.
+
 >         | null descriptions =
 >             if all emptyPartial (map snd $ IM.toList partials)
 >                 then return [[]]
 >                 else Nothing
->
->         -- Row finished, go to next one
+
+If we have at least one row description, we check to see if that row description
+is empty. Suppose this is the case. This means no more black areas should be
+placed in this row, so we just fill it up with white cells. We then recursively
+call `solve'` to solve the other rows.
+
 >         | null rd = do
 >             ps <- foldM (learnCellAt White) partials [column .. width - 1]
 >             rows <- solve' 0 rds ps
 >             return $ replicate (width - column) White : rows
->
->         -- Two possibilities (defined later)
->         | otherwise = branchingStrategy place skip
+
+Since we know now that the row description is not empty, we have at least one
+black area on this row. We consider two possibilities:
+
+- the black areas starts at the beginning of the row (consider the beginning of
+  the row as indicated by the `column` argument);
+- we have at least one white cell, followed by a row with the same black areas.
+
+This is where our search tree branches between the two cases, `branch` and
+`skip`, defined later.
+
+>         | otherwise = branch place skip
+
+Some definitions of previously used values:
+
 >       where
->         -- Row descriptions
 >         (rd : rds) = descriptions
->
->         -- This row's description
 >         (l : ds) = rd
->
+
+The case where the black area is at the beginning at the row has a pretty long
+definition but the logic behind the code is actually quite straightforward:
+
+- we fail if the black area cannot be placed due to the fact there are
+  insuficient cells left;
+- we update the the column partial knowledge with these new black cells;
+- we place a white cell after the black area, two because black areas cannot be
+  contiguous (if the end of the black area touches the border of the grid, we
+  can skip this);
+- we recursively call `solve'` to solve the rest of the row, then add the cells
+  we just calculated to the returned solution.
+
 >         place = do
 >             when (column + l > width) Nothing
 >             ps <- foldM (learnCellAt Black) partials
@@ -146,47 +194,51 @@ transformation [^1].
 >             (row : rows) <- solve' (column + l + 1) (ds : rds) ps'
 >             let row' = if atEnd then row else White : row
 >             return $ (replicate l Black ++ row') : rows
->
+
+If we choose not to place the black area at the beginning of the row, we just
+need to add a white cell and recursively call `solve'` again. This case can fail
+as well -- when we've reached the far right side of the grid, we can no longer
+place white cells.
+
 >         skip = do
 >             when (column >= width) Nothing
 >             ps <- learnCellAt White partials column
 >             (row : rows) <- solve' (column + 1) ((l : ds) : rds) ps
 >             return $ ((White : row)) : rows
->
-> parallel :: Branching a
-> parallel x y = x `par` y `pseq` mplus x y
->
-> nonogram :: [Description] -> [Description] -> Maybe Nonogram
-> nonogram rows columns = solve parallel (length columns) 0 rows state
+
+The `nonogram` function helps us in converting the column descriptions into the
+partial information we need, and thus provides a nicer interface to the
+programmer than `solve` does.
+
+> nonogram :: Branching Nonogram -> [Description] -> [Description]
+>          -> Maybe Nonogram
+> nonogram branch rows columns = solve branch (length columns) 0 rows state
 >   where
 >     state = IM.fromList (zip [0 ..] $ map fromDescription columns)
->
-> nonogram' :: [Description] -> [Description] -> IO ()
-> nonogram' rows columns = case nonogram rows columns of
->     Nothing -> putStrLn "No solution found"
->     Just g  -> mapM_ (putStrLn . concatMap cell) g
+
+We provide a sequential and a parallel program:
+
+> sequentialNonogram :: [Description] -> [Description] -> Maybe Nonogram
+> sequentialNonogram = nonogram sequential
+
+> parallelNonogram :: [Description] -> [Description] -> Maybe Nonogram
+> parallelNonogram = nonogram parallel
+
+At last, the `putNonogram` function allows us to print a solution of the type
+`Maybe Nonogram` to standard output.
+
+> putNonogram :: Maybe Nonogram -> IO ()
+> putNonogram Nothing  = putStrLn "No solution found"
+> putNonogram (Just s) = mapM_ (putStrLn . concatMap showCell) s
 >   where
->     cell Black = "X"
->     cell White = "-"
->
-> edgecase :: ([Description], [Description])
-> edgecase = ( [[3], [1, 3], [1], [3], [1, 1]]
->            , [[3], [1, 2], [2, 1], [2, 1], [1]]
->            )
->
-> edgecase' :: ([Description], [Description])
-> edgecase' = ( [[1, 1], [1], [3]]
->             , [[3], [1], [1, 1]]
->             )
->
-> solution :: [[Color]]
-> solution =
->     [ [White, Black, Black, Black, White]
->     , [Black, White, Black, Black, Black]
->     , [Black, White, White, White, White]
->     , [Black, Black, Black, White, White]
->     , [White, Black, White, Black, White]
->     ]
+>     showCell Black = "X"
+>     showCell White = "-"
+
+To test the code, one can solve a nonogram from the `Puzzles` module and print
+the solution by using:
+
+> test :: IO ()
+> test = putNonogram $ uncurry sequentialNonogram puzzle_15x15_1
 
 [^1]: A straightforward explanation can be found in this blogpost:
       <http://blog.johantibell.com/2010/09/static-argument-transformation.html>
