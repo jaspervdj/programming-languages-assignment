@@ -8,17 +8,11 @@ import Nonogram
 import Puzzles
 
 main :: IO ()
-main = defaultMain $ concat
-    [ bench' "5x5"   puzzles_5x5
-    , bench' "10x10" puzzles_10x10
-    , bench' "15x15" puzzles_15x15
-    , bench' "20x20" puzzles_20x20
-    , bench' "25x25" puzzles_25x25
-    ]
+main = defaultMain $ concatMap bench' puzzles
   where
-    bench' name puzzles =
+    bench' (name, rows, columns) =
         [ bench ("sequential " ++ name) $
-            nf (show . map (uncurry sequentialNonogram)) puzzles
+            nf (show . uncurry sequentialNonogram) (rows, columns)
         , bench ("parallel " ++ name) $
-            nf (show . map (uncurry parallelNonogram)) puzzles
+            nf (show . uncurry parallelNonogram) (rows, columns)
         ]
