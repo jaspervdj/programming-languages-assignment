@@ -109,32 +109,34 @@ transformation [^1].
 >             rows <- solve' 0 rds ps
 >             return $ replicate (width - column) White : rows
 >
->         | otherwise =
->             let place = do
->                     when (column + l > width) Nothing
->                     ps <- foldM (learnCellAt Black) partials
->                               [column .. column + l - 1]
->
->                     let atEnd = column + l == width
->
->                     ps' <- if atEnd then return ps
->                                     else learnCellAt White ps (column + l)
->
->                     (row : rows) <- solve' (column + l + 1) (ds : rds) ps'
->                     let row' = if atEnd then row else White : row
->                     return $ (replicate l Black ++ row') : rows
->                 skip = do
->                     when (column >= width) Nothing
->                     ps <- learnCellAt White partials column
->                     (row : rows) <- solve' (column + 1) ((l : ds) : rds) ps
->                     return $ ((White : row)) : rows
->             in choose place skip
+>         -- Two possibilities (defined later)
+>         | otherwise = choose place skip
 >       where
 >         -- Row descriptions
 >         (rd : rds) = descriptions
 >
 >         -- This row's description
 >         (l : ds) = rd
+>
+>         place = do
+>             when (column + l > width) Nothing
+>             ps <- foldM (learnCellAt Black) partials
+>                       [column .. column + l - 1]
+>
+>             let atEnd = column + l == width
+>
+>             ps' <- if atEnd then return ps
+>                             else learnCellAt White ps (column + l)
+>
+>             (row : rows) <- solve' (column + l + 1) (ds : rds) ps'
+>             let row' = if atEnd then row else White : row
+>             return $ (replicate l Black ++ row') : rows
+>
+>         skip = do
+>             when (column >= width) Nothing
+>             ps <- learnCellAt White partials column
+>             (row : rows) <- solve' (column + 1) ((l : ds) : rds) ps
+>             return $ ((White : row)) : rows
 >
 > nonogram :: [Description] -> [Description] -> Maybe Nonogram
 > nonogram rows columns = solve (length columns) 0 rows state
