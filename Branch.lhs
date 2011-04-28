@@ -1,7 +1,9 @@
+> {-# LANGUAGE BangPatterns #-}
 > module Branch where
 >
 > import Control.Arrow (first)
 > import Control.Monad (when, forM_, mplus, unless, foldM)
+> import Control.Parallel (par, pseq)
 >
 > import Data.IntMap (IntMap)
 > import qualified Data.IntMap as IM
@@ -88,12 +90,25 @@ column (specified by it's 0-based index).
 >     ds <- learnCell cell $ partials IM.! index
 >     return $ IM.insert index ds partials
 
+In Haskell, we can abstract over pretty much anything. We need to write two
+versions of our nonogram solving algorithm -- a simple one and a concurrent one.
+Since we want as little code duplication as possible, we can do this by
+abstracting over the way we deal with branches in our search tree.
+
+More concrete, we have a branching strategy (`Branching`) which decides how two
+branches which might or might not yield a result (the `Maybe a`'s) are composed.
+The first argument is the depth of the branch in the tree -- some strategies
+might want to use this information in order to make a decision.
+
+> type Branching a = Maybe a -> Maybe a -> Maybe a
+
 We have a `solve` function which is a wrapper around a `solve'` function which
 does the actual work. This is an optimization called the static argument
 transformation [^1].
 
-> solve :: Int -> Int -> [Description] -> Partials -> Maybe Nonogram
-> solve width = solve'
+> solve :: Branching Nonogram -> Int -> Int -> [Description] -> Partials
+>       -> Maybe Nonogram
+> solve branchingStrategy width = solve'
 >   where
 >
 >     solve' column descriptions partials
@@ -110,7 +125,7 @@ transformation [^1].
 >             return $ replicate (width - column) White : rows
 >
 >         -- Two possibilities (defined later)
->         | otherwise = choose place skip
+>         | otherwise = branchingStrategy place skip
 >       where
 >         -- Row descriptions
 >         (rd : rds) = descriptions
@@ -138,8 +153,11 @@ transformation [^1].
 >             (row : rows) <- solve' (column + 1) ((l : ds) : rds) ps
 >             return $ ((White : row)) : rows
 >
+> parallel :: Branching a
+> parallel x y = x `par` y `pseq` mplus x y
+>
 > nonogram :: [Description] -> [Description] -> Maybe Nonogram
-> nonogram rows columns = solve (length columns) 0 rows state
+> nonogram rows columns = solve parallel (length columns) 0 rows state
 >   where
 >     state = IM.fromList (zip [0 ..] $ map fromDescription columns)
 >
