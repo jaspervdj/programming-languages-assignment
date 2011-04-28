@@ -1,0 +1,47 @@
+warming up
+estimating clock resolution...
+mean is 10.39193 us (80001 iterations)
+found 1070 outliers among 79999 samples (1.3%)
+  953 (1.2%) high severe
+estimating cost of a clock call...
+mean is 214.1563 ns (60 iterations)
+found 10 outliers among 60 samples (16.7%)
+  9 (15.0%) low severe
+  1 (1.7%) low mild
+
+benchmarking sequential/puzzle_5x5
+collecting 50 samples, 1029 iterations each, in estimated 519.6250 ms
+bootstrapping with 1000 resamples
+mean: 10.10453 us, lb 10.10137 us, ub 10.10867 us, ci 0.950
+std dev: 12.69346 ns, lb 9.234885 ns, ub 17.12238 ns, ci 0.950
+found 5 outliers among 50 samples (10.0%)
+  4 (8.0%) high mild
+  1 (2.0%) high severe
+variance introduced by outliers: 1.960%
+variance is slightly inflated by outliers
+
+benchmarking sequential/puzzle_10x10
+collecting 50 samples, 52 iterations each, in estimated 526.1399 ms
+bootstrapping with 1000 resamples
+mean: 202.7505 us, lb 202.6281 us, ub 202.8772 us, ci 0.950
+std dev: 456.6457 ns, lb 404.4420 ns, ub 537.8135 ns, ci 0.950
+variance introduced by outliers: 1.960%
+variance is slightly inflated by outliers
+
+benchmarking sequential/puzzle_15x15
+collecting 50 samples, 2 iterations each, in estimated 591.9456 ms
+bootstrapping with 1000 resamples
+mean: 5.911520 ms, lb 5.906809 ms, ub 5.915463 ms, ci 0.950
+std dev: 15.89855 us, lb 13.61408 us, ub 18.92936 us, ci 0.950
+variance introduced by outliers: 1.960%
+variance is slightly inflated by outliers
+
+benchmarking sequential/puzzle_20x20
+collecting 50 samples, 1 iterations each, in estimated 12.54369 s
+bootstrapping with 1000 resamples
+mean: 250.8528 ms, lb 250.8245 ms, ub 250.8873 ms, ci 0.950
+std dev: 115.4747 us, lb 87.96832 us, ub 156.4892 us, ci 0.950
+found 3 outliers among 50 samples (6.0%)
+  3 (6.0%) high mild
+variance introduced by outliers: 1.960%
+variance is slightly inflated by outliers
