@@ -1,5 +1,19 @@
  ## Nonogram solver
 
+ ### Choice of programming language
+
+I chose to implement the nonogram solver in the Haskell programming language
+[^haskell]. Haskell was chosen for a number of reasons:
+
+[^haskell]: <http://www.haskell.org>
+
+- availability of a high-performance compiler, GHC [^ghc];
+- good Literate Programming support;
+- semi-implicit parallelization using annotations;
+- referential transparency which allows a more declarative programming model.
+
+[^ghc]: <http://www.haskell.org/ghc/>
+
  ### Implementation
 
 The nonogram solver is implemented in the `Nonogram.lhs` file. This is a
