@@ -1,5 +1,9 @@
 module Puzzles
-    ( puzzles
+    ( puzzle_5x5
+    , puzzle_10x10
+    , puzzle_15x15
+    , puzzle_20x20
+    , puzzles
     ) where
 
 type Puzzle = (String, [[Int]], [[Int]])

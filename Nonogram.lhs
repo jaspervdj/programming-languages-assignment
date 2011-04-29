@@ -2,10 +2,89 @@
 
  ### Implementation
 
+The nonogram solver is implemented in the `Nonogram.lhs` file. This is a
+literate Haskell file [^lhs] containing the report as well as the carefully
+explained source code.
+
+[^lhs]: <http://www.haskell.org/haskellwiki/Literate_programming>
+
+To test the code, one can solve a nonogram from the `Puzzles` module and print
+the solution by using:
+
+    ~/Documents/UGent/Programmeertalen$ ghci Nonogram.lhs
+    GHCi, version 7.0.2: http://www.haskell.org/ghc/  :? for help
+    [1 of 2] Compiling Puzzles          ( Puzzles.hs, interpreted )
+    [2 of 2] Compiling Nonogram         ( Nonogram.lhs, interpreted )
+    Ok, modules loaded: Nonogram, Puzzles.
+    ghci> let (_, rows, columns) = puzzle_15x15 
+    ghci> putNonogram $ sequentialNonogram rows columns
+    -XX---X-X---X-X
+    XX---X-XXX-X---
+    -XX--X-X--XX-XX
+    X--XXXXXX-XXX--
+    --XXXXXX-XX---X
+    ---X-XXX----XX-
+    X-X-X--X-X--XXX
+    X-XXXXX-X-XX--X
+    --X-XX-X-XXXXX-
+    --X---X-XX----X
+    -XXXXX-XXX----X
+    X----X--X-XX--X
+    ---XXX--X-X----
+    -XX-XX---X---X-
+    -XXXXXX-X--X-XX
+
+    ghci> :q
+    Leaving GHCi.
+
+Note that you might need to install the `parallel` package [^par], for
+example using `cabal-install` [^cabal]. The `parallel` package is based on
+the *Algorithm + Strategy = Parallelism* paper [^strategies] and gives us a
+high-level interface to adding parallelism to our program.
+
+[^par]: <http://hackage.haskell.org/package/parallel>
+
+[^cabal]: <http://hackage.haskell.org/trac/hackage/wiki/CabalInstall>
+
+[^strategies]: Philip W. Trinder, Kevin Hammond, Hans-Wolfgang Loidl, and Simon
+    L. Peyton Jones. Journal of Functional Programming, 8(1), Jan 1998.
+    <http://www.macs.hw.ac.uk/~dsg/gph/papers/abstracts/strategies.html>
+
+ ### Parallelization conclusions
+
+We can now compare the performance of the sequential program to the performance
+of the parallel program. We use the excellent criterion library [^criterion],
+aimed at benchmarking Haskell code. The code we used to benchmark the the
+programs is located in the `Benchmark.hs` file, and the input puzzles used are
+located in the `Puzzles.hs` file. To reproduce the benchmarks, the `Makefile`
+contains the `benchmark-sequential` and `benchmark-parallel` targets, which
+benchmark the sequential and parallel program.
+
+[^criterion]: <http://www.serpentine.com/blog/2009/09/29/criterion-a-new-benchmarking-library-for-haskell/>
+
+Parallelisation introduces a large overhead for the smaller puzzles, but gives
+us an advantage for larger puzzles. Because we have a branch-and-bound-based
+algorithm, we can conclude that parallelization is only useful for large enough
+input sets. For the **20x20** puzzle, we achieve an acceleration with a factor
+of 1.61150.
+
+                **5x5**      **10x10**    **15x15**    **20x20**
+--------------  -----------  -----------  -----------  -----------
+**sequential**  10.10453 us  202.7505 us  5.911520 ms  250.8528 ms
+**parallel**    22.05260 us  392.9396 us  4.348415 ms  155.6637 ms  
+
+![Performance comparison of the nonogram solver (log scale on y axis)](images/nonogram-sequential-vs-parallel.pdf)
+
+ ### Literate source code
+
+Here, we give the full source code to the programs, annotated in Literate
+Programming style.
+
 > module Nonogram
 >     ( sequentialNonogram
 >     , parallelNonogram
 >     , putNonogram
+>     , module Puzzles
 >     ) where
 >
 > import Control.Monad (when, mplus, foldM)
@@ -13,6 +92,8 @@
 >
 > import Data.IntMap (IntMap)
 > import qualified Data.IntMap as IM
+>
+> import Puzzles
 
 For representing the value of a cell, we use a simple datatype called `Color`.
 
@@ -126,7 +207,9 @@ solver logic.
 
 The `solve` function is actually a wrapper around a `solve'` function which does
 the actual work. This is an optimization called the static argument
-transformation [^1].
+transformation [^sat].
+
+[^sat]: <http://blog.johantibell.com/2010/09/static-argument-transformation.html>
 
 > solve :: Branching Nonogram -> Int -> Int -> [Description] -> Partials
 >       -> Maybe Nonogram
@@ -237,13 +320,3 @@ At last, the `putNonogram` function allows us to print a solution of the type
 >   where
 >     showCell Black = "X"
 >     showCell White = "-"
-
-To test the code, one can solve a nonogram from the `Puzzles` module and print
-the solution by using:
-
-    putNonogram $ uncurry sequentialNonogram puzzle_15x15_1
-
-[^1]: A straightforward explanation can be found in this blogpost:
-      <http://blog.johantibell.com/2010/09/static-argument-transformation.html>
-
- ### Parallelization conclusions

@@ -5,7 +5,6 @@ module Main
 import Criterion.Main
 
 import Nonogram
-import Puzzles
 
 main :: IO ()
 main = defaultMain
