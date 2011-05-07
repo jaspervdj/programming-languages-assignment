@@ -11,14 +11,22 @@ define
       end
    end
 
+   /* Lazy append */
+   fun lazy {LAppend Xs Ys}
+      case Xs
+      of nil then Ys
+      [] X|Xr then X|{LAppend Xr Ys}
+      end
+   end
+
    /* QuickSort algorithm */
    fun lazy {QuickSort Xs}
       case Xs
       of nil then nil
       [] X|Xr then Smaller Larger in
-         Smaller={Filter Xr fun {$ Y} Y=<X end}
-         Larger={Filter Xr fun {$ Y} Y>X end}
-         {Append {QuickSort Smaller} X|{QuickSort Larger}}
+         Smaller={Filter Xr fun lazy {$ Y} Y=<X end}
+         Larger={Filter Xr fun lazy {$ Y} Y>X end}
+         {LAppend {QuickSort Smaller} X|{QuickSort Larger}}
       end
    end
    
