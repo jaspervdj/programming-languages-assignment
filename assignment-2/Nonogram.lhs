@@ -26,7 +26,7 @@ To test the code, one can solve a nonogram from the `Puzzles` module and print
 the solution using the GHCi interpreter (do note that the solving is
 substantially faster when we compile our program first):
 
-    ~/Documents/UGent/Programmeertalen$ ghci Nonogram.lhs
+    assignment-2$ ghci Nonogram.lhs
     GHCi, version 7.0.2: http://www.haskell.org/ghc/  :? for help
     [1 of 2] Compiling Puzzles          ( Puzzles.hs, interpreted )
     [2 of 2] Compiling Nonogram         ( Nonogram.lhs, interpreted )
@@ -91,7 +91,7 @@ a reduction of the running time by 50%).
 **sequential**  10.10453 us  202.7505 us  5.911520 ms  250.8528 ms
 **parallel**    22.05260 us  392.9396 us  4.348415 ms  155.6637 ms  
 
-Looking at the results, parallelisation introduces a large overhead for the
+Looking at the results, parallelization introduces a large overhead for the
 smaller puzzles, but gives us an advantage for larger puzzles. Because of our
 implementation of the branch-and-bound-based algorithm, we know that for each
 branch, a `par` call is made. However, this is only useful if the branch is a
@@ -122,13 +122,13 @@ Programming style.
 >
 > import Control.Monad (when, mplus, foldM)
 > import Control.Parallel (par, pseq)
->
 > import Data.IntMap (IntMap)
 > import qualified Data.IntMap as IM
 >
 > import Puzzles
 
-For representing the value of a cell, we use a simple datatype called `Color`.
+A nonogram grid is built from cells in two possible colors. For representing the
+value of a cell, we use a simple datatype called `Color`.
 
 > data Color = White | Black
 >            deriving (Show, Eq)
@@ -143,11 +143,13 @@ list a `Description` and represent it as an `Int` list:
 > type Description = [Int]
 
 We use an algorithm that attempts to solve the puzzle top-down, i.e. starting at
-the top row and finishing at the bottom row. It is a branch-and-bound algorithm,
-searching the solution space.
+the top row and finishing at the bottom row. It is implemented as a
+branch-and-bound algorithm, searching the solution space.
 
 As we solve more and more rows, we also learn new, partial information about the
-columns -- in addition to the `Description` of the columns.
+columns -- in addition to the `Description` of the columns. We use this to
+"bound" in certain cases, if the current search space does not match our partial
+information.
 
 > data Partial = MustBe Color
 >              | BlackArea Int
