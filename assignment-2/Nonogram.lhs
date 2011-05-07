@@ -23,30 +23,36 @@ explained source code.
 [^lhs]: <http://www.haskell.org/haskellwiki/Literate_programming>
 
 To test the code, one can solve a nonogram from the `Puzzles` module and print
-the solution by using:
+the solution using the GHCi interpreter (do note that the solving is
+substantially faster when we compile our program first):
 
     ~/Documents/UGent/Programmeertalen$ ghci Nonogram.lhs
     GHCi, version 7.0.2: http://www.haskell.org/ghc/  :? for help
     [1 of 2] Compiling Puzzles          ( Puzzles.hs, interpreted )
     [2 of 2] Compiling Nonogram         ( Nonogram.lhs, interpreted )
     Ok, modules loaded: Nonogram, Puzzles.
-    ghci> let (_, rows, columns) = puzzle_15x15 
-    ghci> putNonogram $ sequentialNonogram rows columns
-    -XX---X-X---X-X
-    XX---X-XXX-X---
-    -XX--X-X--XX-XX
-    X--XXXXXX-XXX--
-    --XXXXXX-XX---X
-    ---X-XXX----XX-
-    X-X-X--X-X--XXX
-    X-XXXXX-X-XX--X
-    --X-XX-X-XXXXX-
-    --X---X-XX----X
-    -XXXXX-XXX----X
-    X----X--X-XX--X
-    ---XXX--X-X----
-    -XX-XX---X---X-
-    -XXXXXX-X--X-XX
+    ghci> let (_, rows, columns) = puzzle_20x20
+    ghci> putNonogram $ sequentialNonogram rows columns 
+    ----------XXX-------
+    ---------XXXXX------
+    ---------XXX-X------
+    ---------XX--X------
+    ------XXX-XXX-XXXX--
+    ----XX--XX---XXXXXXX
+    --XXXXXX-X---X------
+    -XXXX---XX--XX------
+    --------X---X-------
+    -------XXX--X-------
+    -------XXXXXX-------
+    -XX---XXXXXXX-------
+    XXXXXX--XXX-X-------
+    X-XX--XX-X--X-------
+    ---XXXX--X-X--XXX---
+    --------XXXX-XX-XX--
+    --------XXX--XXX-X--
+    -------XXX----XXX---
+    ------XXX-----------
+    ------XX-X----------
 
     ghci> :q
     Leaving GHCi.
@@ -76,16 +82,29 @@ benchmark the sequential and parallel program.
 
 [^criterion]: <http://www.serpentine.com/blog/2009/09/29/criterion-a-new-benchmarking-library-for-haskell/>
 
-Parallelisation introduces a large overhead for the smaller puzzles, but gives
-us an advantage for larger puzzles. Because we have a branch-and-bound-based
-algorithm, we can conclude that parallelization is only useful for large enough
-input sets. For the **20x20** puzzle, we achieve an acceleration with a factor
-of 1.61150.
+We ran these benchmarks on an Intel(R) Core(TM)2 Duo CPU E8400 @ 3.00GHz.
+Because we use a dual-core computer, we can at most expect a 100% speedup (i.e.
+a reduction of the running time by 50%).
 
                 **5x5**      **10x10**    **15x15**    **20x20**
 --------------  -----------  -----------  -----------  -----------
 **sequential**  10.10453 us  202.7505 us  5.911520 ms  250.8528 ms
 **parallel**    22.05260 us  392.9396 us  4.348415 ms  155.6637 ms  
+
+Looking at the results, parallelisation introduces a large overhead for the
+smaller puzzles, but gives us an advantage for larger puzzles. Because of our
+implementation of the branch-and-bound-based algorithm, we know that for each
+branch, a `par` call is made. However, this is only useful if the branch is a
+non-trivial computation: otherwise, the overhead of the `par` call outweighs the
+benefits of parallelization. We can conclude that the parallelization for this
+algorithm is only useful for large enough input sets: otherwise, the overhead
+outweighs the speedup.
+
+For the 20x20 puzzle, we see that the running time is reduced by 37.9461%. This
+is not the 50% reduction we were naively hoping for, but it is not a bad result,
+since the parallelization of the program was almost trivial (just replacing the
+branching function). We also have to keep in mind that not everything can happen
+in parallel: e.g. joining the results of two branches happens on one core.
 
 ![Performance comparison of the nonogram solver (log scale on y axis)](images/nonogram-sequential-vs-parallel.pdf)
 
