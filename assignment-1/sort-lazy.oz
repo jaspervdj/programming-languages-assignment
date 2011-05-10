@@ -19,13 +19,27 @@ define
       end
    end
 
+   /* Partition a list using a predicate */
+   fun lazy {LPartition Xs P}
+      fun {LPartitionIter Xs Ys Zs}
+	 case Xs
+	 of nil then Ys#Zs
+	 [] X|Xr then
+	    if {P X} then {LPartitionIter Xr X|Ys Zs}
+	    else {LPartitionIter Xr Ys X|Zs}
+	    end
+	 end
+      end
+   in
+      {LPartitionIter Xs nil nil}
+   end
+   
    /* QuickSort algorithm */
    fun lazy {QuickSort Xs}
       case Xs
       of nil then nil
       [] X|Xr then Smaller Larger in
-         Smaller={Filter Xr fun lazy {$ Y} Y=<X end}
-         Larger={Filter Xr fun lazy {$ Y} Y>X end}
+         Smaller#Larger={LPartition Xr fun lazy {$ Y} Y=<X end}
          {LAppend {QuickSort Smaller} X|{QuickSort Larger}}
       end
    end

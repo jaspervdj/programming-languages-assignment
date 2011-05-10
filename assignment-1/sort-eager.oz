@@ -16,8 +16,7 @@ define
       case Xs
       of nil then nil
       [] X|Xr then Smaller Larger in
-         Smaller={Filter Xr fun {$ Y} Y=<X end}
-         Larger={Filter Xr fun {$ Y} Y>X end}
+	 {List.partition Xr fun {$ Y} Y=<X end Smaller Larger}
          {Append {QuickSort Smaller} X|{QuickSort Larger}}
       end
    end
