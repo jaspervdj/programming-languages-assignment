@@ -1,34 +1,31 @@
-all: sort-eager sort-lazy \
-     hamming-lazy hamming-eager
+# Compile all programs
+default: sort-eager sort-lazy \
+     	 hamming-eager hamming-lazy
 
-sort-eager: sort-eager.oz
-	ozc -x sort-eager.oz
+# Compile & run all benchmarks
+all: default \
+     sort-eager.csv sort-lazy.csv \
+     hamming-eager.csv hamming-lazy.csv
 
-sort-eager.csv: sort-eager
-	./benchmark.rb sort-eager 500 1500
+# Compile an oz program
+%: %.oz
+	ozc -x $<
 
-sort-lazy: sort-lazy.oz
-	ozc -x sort-lazy.oz
+# Generate CSV results for the sort program
+sort-%.csv: sort-%
+	./benchmark.rb $< 100 500
 
-sort-lazy.csv: sort-lazy
-	./benchmark.rb sort-lazy 500 1500
+# Generate CSV results for the hamming program
+hamming-%.csv: hamming-%
+	./benchmark.rb $< 20 100
 
-hamming-eager: hamming-eager.oz
-	ozc -x hamming-eager.oz
-
-hamming-eager.csv: hamming-eager
-	./benchmark.rb hamming-eager 20 200
-
-hamming-lazy: hamming-lazy.oz
-	ozc -x hamming-lazy.oz
-
-hamming-lazy.csv: hamming-lazy
-	./benchmark.rb hamming-lazy 20 200
-
+# Clean up everything
 clean:
 	rm -f sort-lazy
 	rm -f sort-lazy.csv
 	rm -f sort-eager
 	rm -f sort-eager.csv
 	rm -f hamming-eager
+	rm -f hamming-eager.csv
 	rm -f hamming-lazy
+	rm -f hamming-lazy.csv
