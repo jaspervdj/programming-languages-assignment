@@ -106,7 +106,7 @@ since the parallelization of the program was almost trivial (just replacing the
 branching function). We also have to keep in mind that not everything can happen
 in parallel: e.g. joining the results of two branches happens on one core.
 
-![Performance comparison of the nonogram solver (log scale on y axis)](images/nonogram-sequential-vs-parallel.pdf)
+![Performance comparison of the nonogram solver (log scale on y axis)](assignment-2/images/nonogram-sequential-vs-parallel.pdf)
 
  ### Literate source code
 
