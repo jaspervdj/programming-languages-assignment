@@ -15,15 +15,15 @@ all: default \
 
 # Generate CSV results for the sort programs
 sort-%.csv: sort-%
-	./benchmark.rb $< 100 1000
+	./benchmark.rb $< 100 2000
 
 # Generate CSV results for the hamming programs
 hamming-%.csv: hamming-%
-	./benchmark.rb $< 10 180 5
+	./benchmark.rb $< 10 200 5
 
 # Generate CSV results for the goldbach programs
 goldbach-%.csv: goldbach-%
-	./benchmark.rb $< 1000 20000 4 1
+	./benchmark.rb $< 1000 10000000 4128 1
 
 # Clean up everything
 clean:
