@@ -1,6 +1,8 @@
-## Lazy execution: performance issues
+Lazy execution: performance issues
+==================================
 
-### Programs
+Programs
+--------
 
 We have chosen three programs to:
 
@@ -8,12 +10,14 @@ We have chosen three programs to:
 - sort a random list of numbers, using the quicksort algorithm;
 - generate the hamming numbers in order.
 
-### Goldbach partition of a number
+Goldbach partition of a number
+------------------------------
 
 This program (found in `goldbach-eager.oz` and `goldbach-lazy.oz`) computes a
 Goldbach partition of a number `N` (which it takes as command-line argument).
 
-### Quicksort
+Quicksort
+---------
 
 `sort-eager.oz` and `sort-lazy.oz` implement a quicksort algorithm. The user
 passes a certain `N` as command-line argument to the program. The program will
@@ -26,13 +30,15 @@ than the eager version, since laziness always introduces a certain overhead.
 
 ![How long does it take to generate and sort N numbers? Lazy version: green, eager version: red](assignment-1/images/sort.pdf)
 
-### Hamming numbers
+Hamming numbers
+---------------
 
 Our last program (see `hamming-eager.oz` and `hamming-lazy.oz`) is able to
 generate the first `N` hamming numbers. This `N` is passed as a command-line
 argument to the executable.
 
-### Conclusions
+Conclusions
+-----------
 
 It is obvious that the choice between lazy and eager evaluation, from the
 viewpoint of the programming language designer, is not an easy one. We have
