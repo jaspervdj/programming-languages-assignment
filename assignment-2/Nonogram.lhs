@@ -346,8 +346,8 @@ We provide a sequential and a parallel program:
 > parallelNonogram :: [Description] -> [Description] -> Maybe Nonogram
 > parallelNonogram = nonogram parallel
 
-At last, the `putNonogram` function allows us to print a solution of the type
-`Maybe Nonogram` to standard output.
+At last, the `putNonogram` function allows us to print a solution we found
+(of the type `Maybe Nonogram`) to standard output.
 
 > putNonogram :: Maybe Nonogram -> IO ()
 > putNonogram Nothing  = putStrLn "No solution found"
