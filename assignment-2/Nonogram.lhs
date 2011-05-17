@@ -1,6 +1,8 @@
- ## Nonogram solver
+Nonogram solver
+===============
 
- ### Choice of programming language
+Choice of programming language
+------------------------------
 
 I chose to implement the nonogram solver in the Haskell programming language
 [^haskell]. Haskell was chosen for a number of reasons:
@@ -14,7 +16,8 @@ I chose to implement the nonogram solver in the Haskell programming language
 
 [^ghc]: <http://www.haskell.org/ghc/>
 
- ### Implementation
+Implementation
+--------------
 
 The nonogram solver is implemented in the `Nonogram.lhs` file. This is a
 literate Haskell file [^lhs] containing the report as well as the carefully
@@ -70,7 +73,8 @@ high-level interface to adding parallelism to our program.
     L. Peyton Jones. Journal of Functional Programming, 8(1), Jan 1998.
     <http://www.macs.hw.ac.uk/~dsg/gph/papers/abstracts/strategies.html>
 
- ### Parallelization conclusions
+Parallelization conclusions
+---------------------------
 
 We can now compare the performance of the sequential program to the performance
 of the parallel program. We use the excellent criterion library [^criterion],
@@ -106,9 +110,10 @@ since the parallelization of the program was almost trivial (just replacing the
 branching function). We also have to keep in mind that not everything can happen
 in parallel: e.g. joining the results of two branches happens on one core.
 
-![Performance comparison of the nonogram solver (log scale on y axis)](images/nonogram-sequential-vs-parallel.pdf)
+![Performance comparison of the nonogram solver (log scale on y axis)](assignment-2/images/nonogram-sequential-vs-parallel.pdf)
 
- ### Literate source code
+Literate source code
+--------------------
 
 Here, we give the full source code to the programs, annotated in Literate
 Programming style.
@@ -346,8 +351,8 @@ We provide a sequential and a parallel program:
 > parallelNonogram :: [Description] -> [Description] -> Maybe Nonogram
 > parallelNonogram = nonogram parallel
 
-At last, the `putNonogram` function allows us to print a solution of the type
-`Maybe Nonogram` to standard output.
+At last, the `putNonogram` function allows us to print a solution we found
+(of the type `Maybe Nonogram`) to standard output.
 
 > putNonogram :: Maybe Nonogram -> IO ()
 > putNonogram Nothing  = putStrLn "No solution found"
