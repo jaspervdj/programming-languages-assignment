@@ -10,11 +10,22 @@ We have chosen three programs to:
 - sort a random list of numbers, using the quicksort algorithm;
 - generate the hamming numbers in order.
 
+A `Makefile` is included in the `assignment-` directory to reproduce all
+benchmarks.
+
 Goldbach partition of a number
 ------------------------------
 
 This program (found in `goldbach-eager.oz` and `goldbach-lazy.oz`) computes a
 Goldbach partition of a number `N` (which it takes as command-line argument).
+
+We can imagine that the lazy version will be very similar to the eager version
+in terms of execution: in both cases, all partitions need to be generated.
+Hence, we may expect that the lazy version will be a little slower than the
+eager version, since laziness always introduces a certain overhead.
+
+The benchmarks confirm this, we can see that the eager version is faster for all
+large enough inputs. For this problem, we do not seem to benefit from laziness.
 
 ![Running time of calculating the Goldbach partitions for a given N](assignment-1/images/goldbach.pdf)
 
