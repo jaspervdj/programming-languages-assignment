@@ -23,7 +23,7 @@ hamming-%.csv: hamming-%
 
 # Generate CSV results for the goldbach programs
 goldbach-%.csv: goldbach-%
-	./benchmark.rb $< 1000 10000000 4128 1
+	./benchmark.rb $< 100 10000 22 4
 
 # Clean up everything
 clean:
