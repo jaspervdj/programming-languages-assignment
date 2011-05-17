@@ -16,6 +16,8 @@ Goldbach partition of a number
 This program (found in `goldbach-eager.oz` and `goldbach-lazy.oz`) computes a
 Goldbach partition of a number `N` (which it takes as command-line argument).
 
+![Running time of calculating the Goldbach partitions for a given N](assignment-1/images/goldbach.pdf)
+
 Quicksort
 ---------
 
@@ -28,7 +30,7 @@ in terms of execution: in both cases, all elements of the sorted list need to be
 generated. Hence, we may expect that the lazy version will be a little slower
 than the eager version, since laziness always introduces a certain overhead.
 
-![How long does it take to generate and sort N numbers? Lazy version: green, eager version: red](assignment-1/images/sort.pdf)
+![Running time of generating and sorting N numbers](assignment-1/images/sort.pdf)
 
 Hamming numbers
 ---------------
@@ -36,6 +38,8 @@ Hamming numbers
 Our last program (see `hamming-eager.oz` and `hamming-lazy.oz`) is able to
 generate the first `N` hamming numbers. This `N` is passed as a command-line
 argument to the executable.
+
+![Running time of generating N hamming numbers in order](assignment-1/images/hamming.pdf)
 
 Conclusions
 -----------
