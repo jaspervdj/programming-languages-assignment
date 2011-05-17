@@ -19,7 +19,7 @@ define
    fun lazy {Goldbach N}
       fun lazy {GoldbachIter X}
          if X>(N div 2) then nil
-         elseif {And {IsPrime X} {IsPrime N-X}} then X#N-X
+         elseif {And {IsPrime X} {IsPrime N-X}} then X#N-X|{GoldbachIter X+2}
          else {GoldbachIter X+2}
          end
       end
@@ -27,11 +27,10 @@ define
       {GoldbachIter 1}
    end
 
-   local N X Y in
+   local N Ps in
       N|_={Application.getArgs plain}
-      X#Y={Goldbach {StringToInt N}}
-      {System.show X+0}
-      {System.show Y+0}
+      Ps={Goldbach {StringToInt N}}
+      {ForAll Ps System.show}
       {Application.exit 0}
    end
 end
