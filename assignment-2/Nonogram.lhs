@@ -19,23 +19,27 @@ I chose to implement the nonogram solver in the Haskell programming language
 Implementation
 --------------
 
-The nonogram solver is implemented in the `Nonogram.lhs` file. This is a
-literate Haskell file [^lhs] containing the report as well as the carefully
-explained source code.
+The sequential and parallel nonogram solvers are implemented in the
+`Nonogram.lhs` file. This is a literate Haskell file [^lhs] containing the
+report as well as the carefully explained source code.
 
 [^lhs]: <http://www.haskell.org/haskellwiki/Literate_programming>
 
-To test the code, one can solve a nonogram from the `Puzzles` module and print
-the solution using the GHCi interpreter (do note that the solving is
-substantially faster when we compile our program first):
+The `Main.hs` file has an entry point for an executable to solve a puzzle
+concurrently, and a simple parser for a standard nonogram file format [^fmt].
 
-    assignment-2$ ghci Nonogram.lhs
-    GHCi, version 7.0.2: http://www.haskell.org/ghc/  :? for help
-    [1 of 2] Compiling Puzzles          ( Puzzles.hs, interpreted )
-    [2 of 2] Compiling Nonogram         ( Nonogram.lhs, interpreted )
-    Ok, modules loaded: Nonogram, Puzzles.
-    ghci> let (_, rows, columns) = puzzle_20x20
-    ghci> putNonogram $ sequentialNonogram rows columns 
+[^fmt]: <http://www.comp.lancs.ac.uk/~ss/nonogram/fmt2>
+
+We can compile and run the program like this:
+
+    $ make
+    ghc --make -O2 -threaded Main.hs -o nonogram-solver
+    [1 of 1] Compiling Nonogram         ( Nonogram.lhs, Nonogram.o )
+    [2 of 2] Compiling Main             ( Main.hs, Main.o )
+    Linking nonogram-solver ...
+    $ ./nonogram-solver 20x20.nonogram
+    Parsing 20x20.nonogram
+    Solving 20x20.nonogram
     ----------XXX-------
     ---------XXXXX------
     ---------XXX-X------
@@ -57,9 +61,6 @@ substantially faster when we compile our program first):
     ------XXX-----------
     ------XX-X----------
 
-    ghci> :q
-    Leaving GHCi.
-
 Note that you might need to install the `parallel` package [^par], for
 example using `cabal-install` [^cabal]. The `parallel` package is based on
 the *Algorithm + Strategy = Parallelism* paper [^strategies] and gives us a
@@ -79,10 +80,10 @@ Parallelization conclusions
 We can now compare the performance of the sequential program to the performance
 of the parallel program. We use the excellent criterion library [^criterion],
 aimed at benchmarking Haskell code. The code we used to benchmark the the
-programs is located in the `Benchmark.hs` file, and the input puzzles used are
-located in the `Puzzles.hs` file. To reproduce the benchmarks, the `Makefile`
-contains the `benchmark-sequential` and `benchmark-parallel` targets, which
-benchmark the sequential and parallel program.
+programs is located in the `Benchmark.hs` file, along with some sample puzzles.
+To reproduce the benchmarks, the `Makefile` contains the `benchmark-sequential`
+and `benchmark-parallel` targets, which benchmark the sequential and parallel
+program.
 
 [^criterion]: <http://www.serpentine.com/blog/2009/09/29/criterion-a-new-benchmarking-library-for-haskell/>
 
@@ -123,15 +124,12 @@ Programming style.
 >     , sequentialNonogram
 >     , parallelNonogram
 >     , putNonogram
->     , module Puzzles
 >     ) where
 >
 > import Control.Monad (when, mplus, foldM)
 > import Control.Parallel (par, pseq)
 > import Data.IntMap (IntMap)
 > import qualified Data.IntMap as IM
->
-> import Puzzles
 
 A nonogram grid is built from cells in two possible colors. For representing the
 value of a cell, we use a simple datatype called `Color`.
