@@ -1,8 +1,5 @@
-report.pdf: Nonogram.lhs
-	sed 's/^ #/#/' Nonogram.lhs > tmp.lhs
-	pandoc -sS --template template.tex -f markdown+lhs -t latex tmp.lhs > report.tex
-	pdflatex report.tex
-	rm tmp.lhs
+nonogram-solver: Nonogram.lhs Main.hs
+	ghc --make -O2 -threaded Main.hs -o nonogram-solver
 
 benchmark-sequential:
 	ghc --make -fforce-recomp -O2 Benchmark.hs

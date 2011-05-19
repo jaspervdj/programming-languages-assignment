@@ -119,7 +119,8 @@ Here, we give the full source code to the programs, annotated in Literate
 Programming style.
 
 > module Nonogram
->     ( sequentialNonogram
+>     ( Description
+>     , sequentialNonogram
 >     , parallelNonogram
 >     , putNonogram
 >     , module Puzzles
