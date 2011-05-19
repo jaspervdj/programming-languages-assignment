@@ -64,7 +64,7 @@ We can compile and run the program like this:
 Note that you might need to install the `parallel` package [^par], for
 example using `cabal-install` [^cabal]. The `parallel` package is based on
 the *Algorithm + Strategy = Parallelism* paper [^strategies] and gives us a
-high-level interface to adding parallelism to our program.
+high-level interface to add parallelism to our program.
 
 [^par]: <http://hackage.haskell.org/package/parallel>
 

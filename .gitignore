@@ -5,6 +5,10 @@ assignment-1/hamming-eager
 assignment-1/goldbach-lazy
 assignment-1/goldbach-eager
 
+assignment-2/nonogram-solver
+*.hi
+*.o
+
 report.aux
 report.log
 report.out
