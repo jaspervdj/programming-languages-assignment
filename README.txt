@@ -21,5 +21,5 @@ Directory structure:
 |   |-- Main.hs              Nonogram parser/main function
 |   |-- Makefile             For compiling the programs
 |   \-- Nonogram.lhs         Logic for sequential/parallel solver
-|-- README                   This file
+|-- README.txt               This file
 \-- report.pdf               Assignment report
