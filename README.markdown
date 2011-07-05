@@ -1,7 +1,14 @@
-README
-======
+programming-languages-assignment
+================================
 
-Directory structure:
+What is this?
+-------------
+
+This repository contains the assignments I wrote for the programming languages
+course at Ghent University. I took this course in 2010-2011.
+
+Directory structure
+-------------------
 
 |-- assignment-1             Files for the first assignment
 |   |-- benchmark.rb         Benchmark script
@@ -21,5 +28,5 @@ Directory structure:
 |   |-- Main.hs              Nonogram parser/main function
 |   |-- Makefile             For compiling the programs
 |   \-- Nonogram.lhs         Logic for sequential/parallel solver
-|-- README.txt               This file
+|-- README.markdown          This file
 \-- report.pdf               Assignment report
